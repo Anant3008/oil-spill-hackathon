@@ -1,4 +1,4 @@
-from src.vector_math import speed_dir_to_uv
+from vector_math import speed_dir_to_uv
 
 def test_ocean_current_vectors():
     # Ocean current heading North (0 deg) -> Positive V, Zero U
