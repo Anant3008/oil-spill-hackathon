@@ -1,8 +1,8 @@
 import numpy as np
 import logging
-from src.data_fetcher import get_environmental_data
-from src.vector_math import speed_dir_to_uv
-from src.physics import calculate_oil_velocity
+from data_fetcher import get_environmental_data
+from vector_math import speed_dir_to_uv
+from physics import calculate_oil_velocity
 
 logger = logging.getLogger(__name__)
 
