@@ -73,12 +73,19 @@ def run_cloud_simulation(start_lat, start_lon, num_particles=1000, hours=24, dif
     checkpoints = {}
     checkpoint_hours = {0, 6, 12, 18, 24}
     
+    # Helper to summarize checkpoint data
+    def get_summary_str(lats, lons):
+        return (f"Centroid: ({np.mean(lats):.4f}, {np.mean(lons):.4f}), "
+                f"Spread: {np.std(lats):.5f}°")
+    
     # Save initial T+0 state
+    t0_time = str(df.iloc[0]["time"])
     checkpoints["T+0"] = {
-        "timestamp": str(df.iloc[0]["time"]),
+        "timestamp": t0_time,
         "lats": cloud.lats.tolist(),
         "lons": cloud.lons.tolist()
     }
+    print(f"Checkpoint saved: T+0  (Time: {t0_time}) | {get_summary_str(cloud.lats, cloud.lons)}")
     
     for hour in range(hours):
         row = df.iloc[hour]
@@ -106,7 +113,9 @@ def run_cloud_simulation(start_lat, start_lon, num_particles=1000, hours=24, dif
                 "lats": cloud.lats.tolist(),
                 "lons": cloud.lons.tolist()
             }
-            print(f"Checkpoint saved: {label} (Time: {timestamp_str}) | Centroid: {np.mean(cloud.lats):.4f}, {np.mean(cloud.lons):.4f}")
+            
+            # Print the summary of the checkpoint
+            print(f"Checkpoint saved: {label:<4} (Time: {timestamp_str}) | {get_summary_str(cloud.lats, cloud.lons)}")
 
     # Output to JSON
     os.makedirs("output", exist_ok=True)
@@ -114,7 +123,7 @@ def run_cloud_simulation(start_lat, start_lon, num_particles=1000, hours=24, dif
     with open(output_path, "w") as f:
         json.dump(checkpoints, f)
         
-    print(f"\nSimulation complete. Checkpoints saved to {output_path}")
+    print(f"\nSimulation complete. Full particle datasets saved to {output_path}")
     print("="*70 + "\n")
     return cloud
 
