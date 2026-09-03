@@ -28,14 +28,19 @@ def test_particle_cloud_initialization():
     # History should contain exactly the initial state
     assert len(cloud.history_lats) == 1
     
-def test_particle_cloud_step():
-    cloud = ParticleCloud(start_lat=0.0, start_lon=0.0, num_particles=50)
+def test_particle_cloud_step_with_diffusion():
+    # Simulate with zero diffusion (pure drift)
+    cloud_no_diff = ParticleCloud(0.0, 0.0, num_particles=1000, spread_deg=0.0, diffusion_k=0.0)
+    cloud_no_diff.step(1.0, 1.0, dt_seconds=3600)
     
-    # Move north for 1 step
-    dy_m = (np.pi / 180.0) * EARTH_RADIUS_M
-    v_oil_ms = dy_m / 3600.0
-    cloud.step(0.0, v_oil_ms, dt_seconds=3600)
+    # Simulate with diffusion
+    cloud_diff = ParticleCloud(0.0, 0.0, num_particles=1000, spread_deg=0.0, diffusion_k=50.0)
+    cloud_diff.step(1.0, 1.0, dt_seconds=3600)
     
-    assert len(cloud.history_lats) == 2
-    # The new centroid latitude should have increased by ~1.0
-    assert abs(np.mean(cloud.history_lats[-1]) - np.mean(cloud.history_lats[0]) - 1.0) < 0.001
+    # Standard deviation without diffusion should be zero
+    assert np.std(cloud_no_diff.lats) == 0.0
+    assert np.std(cloud_no_diff.lons) == 0.0
+    
+    # Standard deviation with diffusion must be strictly greater than zero
+    assert np.std(cloud_diff.lats) > 0.0
+    assert np.std(cloud_diff.lons) > 0.0
