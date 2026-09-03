@@ -1,5 +1,5 @@
 import numpy as np
-from drift_model import move_particles, ParticleCloud, EARTH_RADIUS_M
+from src.drift_model import move_particles, ParticleCloud, EARTH_RADIUS_M
 
 def test_move_particles_array_north():
     # Test vectorized movement of 3 particles north simultaneously

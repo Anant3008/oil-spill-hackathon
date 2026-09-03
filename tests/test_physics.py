@@ -1,4 +1,4 @@
-from physics import calculate_oil_velocity
+from src.physics import calculate_oil_velocity
 
 def test_calculate_oil_velocity():
     # Test case 1: Standard values
