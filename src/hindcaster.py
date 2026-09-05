@@ -11,16 +11,17 @@ from ais_exporter import generate_ais_summary
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def run_backward_hindcasting(observed_lat, observed_lon, observation_time_str, backward_duration_hours=24):
+def run_backward_hindcasting(observed_lat, observed_lon, observation_time_str, backward_duration_hours=24, radius_m=2500, oil_type='GENERIC HEAVY CRUDE'):
     """
     Executes Part 4: Backward Hindcasting
-    Input: observed spill location, detection time
+    Input: observed spill location, detection time, dynamic spill properties
     Output: predicted origin probability region over time (GeoJSON polygons)
     """
     logger.info("="*60)
     logger.info(f"BACKWARD HINDCASTING INITIATED")
     logger.info(f"Observed Location: {observed_lat}, {observed_lon}")
     logger.info(f"Observation Time: {observation_time_str}")
+    logger.info(f"Uncertainty Radius: {radius_m}m | Oil Type: {oil_type}")
     logger.info("="*60)
 
     # 1. Parse observation time
@@ -56,17 +57,21 @@ def run_backward_hindcasting(observed_lat, observed_lon, observation_time_str, b
         start_lat=observed_lat,
         start_lon=observed_lon,
         start_time=obs_dt,
-        oil_type='GENERIC HEAVY CRUDE'
+        oil_type=oil_type
     )
     model.add_environment_readers([reader_env])
 
     nc_output = "output/backward_hindcast.nc"
 
+    # Dynamically scale particle count based on the physical size of the spill area
+    # Base baseline of 1000, scaling up linearly with the radius to maintain particle density
+    optimal_particles = max(1000, int(radius_m * 1.5))
+
     model.run_simulation(
         duration_hours=backward_duration_hours,
         time_step_hours=-1, # <--- NEGATIVE TIMESTEP FOR HINDCASTING
-        num_particles=1000,
-        radius_m=2500, # Initial larger radius representing the uncertainty of the observed slick
+        num_particles=optimal_particles,
+        radius_m=radius_m,
         outfile=nc_output
     )
 
@@ -95,5 +100,7 @@ if __name__ == "__main__":
         observed_lat=18.5,
         observed_lon=71.5,
         observation_time_str=obs_time.isoformat() + "Z",
-        backward_duration_hours=24
+        backward_duration_hours=24,
+        radius_m=2500,               # Dynamic parameter: larger radius for hindcast uncertainty
+        oil_type='GENERIC HEAVY CRUDE' # Dynamic parameter: user selected oil type
     )

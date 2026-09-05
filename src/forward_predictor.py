@@ -10,16 +10,17 @@ from exporter import generate_geojson_polygons
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def run_forward_prediction(spill_lat, spill_lon, detection_time_str, duration_hours=24):
+def run_forward_prediction(spill_lat, spill_lon, detection_time_str, duration_hours=24, radius_m=1000, oil_type='GENERIC HEAVY CRUDE'):
     """
     Executes Part 3: Forward Prediction
-    Input: location, detection time
+    Input: location, detection time, dynamic spill properties
     Output: predicted spill region over time (GeoJSON polygons)
     """
     logger.info("="*60)
     logger.info(f"FORWARD PREDICTION INITIATED")
     logger.info(f"Location: {spill_lat}, {spill_lon}")
     logger.info(f"Detection Time: {detection_time_str}")
+    logger.info(f"Spill Radius: {radius_m}m | Oil Type: {oil_type}")
     logger.info("="*60)
 
     # 1. Parse detection time and format for Open-Meteo
@@ -56,16 +57,20 @@ def run_forward_prediction(spill_lat, spill_lon, detection_time_str, duration_ho
         start_lat=spill_lat,
         start_lon=spill_lon,
         start_time=detect_dt,
-        oil_type='GENERIC HEAVY CRUDE'
+        oil_type=oil_type
     )
     model.add_environment_readers([reader_env])
 
     nc_output = "output/forward_prediction.nc"
 
+    # Dynamically scale particle count based on the physical size of the spill area
+    # Base baseline of 1000, scaling up linearly with the radius to maintain particle density
+    optimal_particles = max(1000, int(radius_m * 1.5))
+
     model.run_simulation(
         duration_hours=duration_hours,
-        num_particles=1000,
-        radius_m=1000, # Initial small radius representing the detected slick
+        num_particles=optimal_particles,
+        radius_m=radius_m,
         outfile=nc_output
     )
 
@@ -90,5 +95,7 @@ if __name__ == "__main__":
         spill_lat=18.5,
         spill_lon=71.5,
         detection_time_str=detect_time.isoformat() + "Z", # Simulating an aware ISO string from a frontend API
-        duration_hours=24
+        duration_hours=24,
+        radius_m=1200,               # Dynamic parameter: user/satellite estimated radius
+        oil_type='GENERIC HEAVY CRUDE' # Dynamic parameter: user selected oil type
     )
