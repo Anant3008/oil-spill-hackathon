@@ -6,6 +6,7 @@ import os
 from environment import EnvironmentManager
 from drift_model import SpillModel
 from exporter import generate_geojson_polygons
+from ais_exporter import generate_ais_summary
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -67,13 +68,18 @@ def run_backward_hindcasting(observed_lat, observed_lon, observation_time_str, b
     geojson_output = "output/origin_probability_regions.geojson"
     generate_geojson_polygons(nc_output, geojson_output, is_backward=True)
 
+    # 5. Export AIS-ready summary
+    ais_output = "output/ais_vessel_search_areas.json"
+    generate_ais_summary(nc_output, ais_output)
+
     logger.info("="*60)
     logger.info("HINDCASTING COMPLETE")
-    logger.info(f"Output available at: {geojson_output}")
+    logger.info(f"Visual polygon output available at: {geojson_output}")
+    logger.info(f"AIS Vessel attribution input available at: {ais_output}")
     logger.info("The final polygon in the GeoJSON represents the highest-probability region of origin.")
     logger.info("="*60)
 
-    return geojson_output
+    return geojson_output, ais_output
 
 if __name__ == "__main__":
     # Example scenario: Ship reports oil spill today
