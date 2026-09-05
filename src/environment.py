@@ -6,7 +6,7 @@ import pandas as pd
 import xarray as xr
 from datetime import datetime
 from opendrift.readers import reader_netCDF_CF_generic
-from src.vector_math import speed_dir_to_uv
+from vector_math import speed_dir_to_uv
 
 logger = logging.getLogger(__name__)
 
