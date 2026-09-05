@@ -34,15 +34,21 @@ def run_forward_prediction(spill_lat, spill_lon, detection_time_str, duration_ho
     # 2. Fetch Environment Data
     env_manager = EnvironmentManager()
 
-    # Request a HIGH RESOLUTION grid: 21x21 points at 0.05 degrees (~5.5km resolution).
-    # This covers an area of ~115km x 115km, providing highly localized drift data.
-    reader_env, _ = env_manager.add_openmeteo_grid(
-        center_lat=spill_lat,
-        center_lon=spill_lon,
-        grid_size=21,
-        step_deg=0.05,
+    # Pre-flight check: shift the grid center along the predicted drift path to save API payload
+    opt_lat, opt_lon, opt_step = env_manager.calculate_shifted_grid(
+        start_lat=spill_lat,
+        start_lon=spill_lon,
         start_date=start_date_str,
-        end_date=end_date_str
+        end_date=end_date_str,
+        duration_hours=duration_hours,
+        is_backward=False
+    )
+
+    # Request a dynamically shifted grid at the optimal resolution
+    reader_env, _ = env_manager.add_openmeteo_grid(
+        center_lat=opt_lat,
+        center_lon=opt_lon,
+        step_deg=opt_step
     )
 
     # 3. Run OpenOil Forward Simulation

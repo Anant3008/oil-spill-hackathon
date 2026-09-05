@@ -34,15 +34,21 @@ def run_backward_hindcasting(observed_lat, observed_lon, observation_time_str, b
     # 2. Fetch Environment Data
     env_manager = EnvironmentManager()
 
-    # Request a HIGH RESOLUTION grid: 21x21 points at 0.05 degrees (~5.5km resolution).
-    # This covers an area of ~115km x 115km, providing highly localized drift data.
-    reader_env, _ = env_manager.add_openmeteo_grid(
-        center_lat=observed_lat,
-        center_lon=observed_lon,
-        grid_size=21,
-        step_deg=0.05,
+    # Pre-flight check: shift the grid center backwards along the expected origin path
+    opt_lat, opt_lon, opt_step = env_manager.calculate_shifted_grid(
+        start_lat=observed_lat,
+        start_lon=observed_lon,
         start_date=start_date_str,
-        end_date=end_date_str
+        end_date=end_date_str,
+        duration_hours=backward_duration_hours,
+        is_backward=True
+    )
+
+    # Request a dynamically shifted grid at the optimal resolution
+    reader_env, _ = env_manager.add_openmeteo_grid(
+        center_lat=opt_lat,
+        center_lon=opt_lon,
+        step_deg=opt_step
     )
 
     # 3. Run OpenOil BACKWARD Simulation
