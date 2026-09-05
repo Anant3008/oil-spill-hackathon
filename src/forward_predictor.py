@@ -26,35 +26,36 @@ def run_forward_prediction(spill_lat, spill_lon, detection_time_str, duration_ho
     # Strip timezone info to match the naive UTC timestamps in our NetCDF arrays
     detect_dt = pd.to_datetime(detection_time_str).tz_localize(None)
     start_date_str = detect_dt.strftime('%Y-%m-%d')
-    
+
     # We fetch a few days ahead to guarantee we cover the full duration + buffer
     end_dt = detect_dt + pd.Timedelta(hours=duration_hours + 48)
     end_date_str = end_dt.strftime('%Y-%m-%d')
-    
+
     # 2. Fetch Environment Data
     env_manager = EnvironmentManager()
-    
-    # Request enough grid coverage for the spill to move. 5x5 at 0.25 deg is ~135km box
+
+    # Request a HIGH RESOLUTION grid: 21x21 points at 0.05 degrees (~5.5km resolution).
+    # This covers an area of ~115km x 115km, providing highly localized drift data.
     reader_env, _ = env_manager.add_openmeteo_grid(
         center_lat=spill_lat,
         center_lon=spill_lon,
-        grid_size=5,
-        step_deg=0.25,
+        grid_size=21,
+        step_deg=0.05,
         start_date=start_date_str,
         end_date=end_date_str
     )
 
     # 3. Run OpenOil Forward Simulation
     model = SpillModel(
-        start_lat=spill_lat, 
-        start_lon=spill_lon, 
+        start_lat=spill_lat,
+        start_lon=spill_lon,
         start_time=detect_dt,
         oil_type='GENERIC HEAVY CRUDE'
     )
     model.add_environment_readers([reader_env])
-    
+
     nc_output = "output/forward_prediction.nc"
-    
+
     model.run_simulation(
         duration_hours=duration_hours,
         num_particles=1000,
@@ -70,7 +71,7 @@ def run_forward_prediction(spill_lat, spill_lon, detection_time_str, duration_ho
     logger.info("FORWARD PREDICTION COMPLETE")
     logger.info(f"Output available at: {geojson_output}")
     logger.info("="*60)
-    
+
     return geojson_output
 
 if __name__ == "__main__":
@@ -78,10 +79,10 @@ if __name__ == "__main__":
     # Using 12:00 PM UTC yesterday to ensure API data is fully available
     # Using replace(tzinfo=None) to ensure the initial dummy string mimics a naive or aware str
     detect_time = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
-    
+
     run_forward_prediction(
-        spill_lat=18.5, 
-        spill_lon=71.5, 
+        spill_lat=18.5,
+        spill_lon=71.5,
         detection_time_str=detect_time.isoformat() + "Z", # Simulating an aware ISO string from a frontend API
         duration_hours=24
     )

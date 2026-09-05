@@ -25,24 +25,24 @@ class SpillModel:
         for r in readers:
             self.o.add_reader(r)
             
-    def run_simulation(self, duration_hours=24, num_particles=1000, radius_m=5000, outfile="output/spill_trajectory.nc"):
+    def run_simulation(self, duration_hours=24, time_step_hours=1, num_particles=1000, radius_m=5000, outfile="output/spill_trajectory.nc"):
         """Seeds particles and executes the physics simulation."""
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
-        
+
         logger.info(f"Seeding {num_particles} particles at ({self.start_lat}, {self.start_lon})")
         self.o.seed_elements(
-            lon=self.start_lon, 
+            lon=self.start_lon,
             lat=self.start_lat,
             radius=radius_m,
             number=num_particles,
             time=self.start_time,
             oil_type=self.oil_type
         )
-        
+
         logger.info(f"Running simulation for {duration_hours} hours...")
         self.o.run(
             duration=timedelta(hours=duration_hours),
-            time_step=timedelta(hours=1),
+            time_step=timedelta(hours=time_step_hours),
             outfile=outfile
         )
         
