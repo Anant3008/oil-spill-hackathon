@@ -3,14 +3,15 @@ from datetime import timedelta
 import numpy as np
 import xarray as xr
 from opendrift.models.openoil import OpenOil
-from src.opendrift_bridge import create_env_reader_from_api
+from src.environment import EnvironmentManager
 
 logging.basicConfig(level=logging.WARNING)
 
 print("1. Fetching True Spatial Grid (5x5) to prevent particles from exiting boundaries...")
 start_lat, start_lon = 18.5, 71.5
 # Increased grid size and step to cover a large enough area for 24h drift
-reader_env, start_time = create_env_reader_from_api(start_lat, start_lon, grid_size=5, step_deg=0.25)
+env_manager = EnvironmentManager()
+reader_env, start_time = env_manager.add_openmeteo_grid(start_lat, start_lon, grid_size=5, step_deg=0.25)
 
 print("\n2. Initializing OpenOil and Seeding Particles...")
 o = OpenOil(loglevel=30)

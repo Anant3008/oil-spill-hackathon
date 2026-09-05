@@ -27,9 +27,10 @@ print("\n" + "="*60)
 print("2. RUNNING OPENDRIFT MODEL (Phase 10)")
 print("="*60)
 from opendrift.models.openoil import OpenOil
-from src.opendrift_bridge import create_env_reader_from_api
+from src.environment import EnvironmentManager
 
-reader_env, start_time = create_env_reader_from_api(start_lat, start_lon, grid_size=5, step_deg=0.25)
+env_manager = EnvironmentManager()
+reader_env, start_time = env_manager.add_openmeteo_grid(start_lat, start_lon, grid_size=5, step_deg=0.25)
 o = OpenOil(loglevel=50) # suppress verbose opendrift output
 o.add_reader(reader_env)
 

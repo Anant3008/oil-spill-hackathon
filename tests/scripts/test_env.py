@@ -1,9 +1,10 @@
-from src.opendrift_bridge import create_env_reader_from_api
+from src.environment import EnvironmentManager
 from opendrift.models.openoil import OpenOil
 import numpy as np
 
 start_lat, start_lon = 18.5, 71.5
-reader_env, start_time = create_env_reader_from_api(start_lat, start_lon, grid_size=3, step_deg=0.2)
+env_manager = EnvironmentManager()
+reader_env, start_time = env_manager.add_openmeteo_grid(start_lat, start_lon, grid_size=3, step_deg=0.2)
 
 o = OpenOil()
 o.add_reader(reader_env)
