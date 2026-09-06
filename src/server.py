@@ -86,6 +86,28 @@ def _load_model_module(name: str):
         ) from exc
 
 
+def _clear_model_cache() -> None:
+    """Unlink stale NetCDF files from the model output dir before a run.
+
+    Each run re-downloads forcing and rewrites its cache/output NetCDF files. But
+    OpenDrift's xarray readers keep an .nc file handle cached open after a run, and
+    netCDF4/HDF5 refuses to truncate a file under that active lock -> EACCES on the
+    second run. Unlinking first gives the fresh write a new file (inode); the stale
+    reader keeps the old inode harmlessly alive until the process exits.
+
+    ponytail: relies on a run never needing a previous .nc (true here — the model
+    regenerates everything each run). If concurrent runs ever matter, give each
+    request its own per-run cache dir instead.
+    """
+    out = Path.cwd() / "output"
+    try:
+        for p in out.glob("*.nc"):
+            p.unlink(missing_ok=True)
+            logger.info("cleared stale model netcdf: %s", p.name)
+    except OSError as exc:  # clearing is best-effort; the run will surface real errors
+        logger.warning("could not clear model netcdf cache: %s", exc)
+
+
 def _read_json(rel_path: str) -> dict | list:
     try:
         with open(rel_path, "r") as fh:
@@ -159,6 +181,7 @@ def forecast(req: ForecastRequest):
     mod = _load_model_module("forward_predictor")
     logger.info("[forecast] running for %s, %s", req.spill_lat, req.spill_lon)
     try:
+        _clear_model_cache()
         geojson_path = mod.run_forward_prediction(**payload)
     except HTTPException:
         raise
@@ -189,6 +212,7 @@ def hindcast(req: HindcastRequest):
     mod = _load_model_module("hindcaster")
     logger.info("[hindcast] running for %s, %s", req.observed_lat, req.observed_lon)
     try:
+        _clear_model_cache()
         geojson_path, ais_path = mod.run_backward_hindcasting(**payload)
     except HTTPException:
         raise
