@@ -97,7 +97,45 @@ python tests/scripts/validate_locations.py
 
 ---
 
+## 🌐 FastAPI Server (`src/server.py`)
+
+Exposes the two engines as HTTP endpoints for the React dashboard.
+
+| Endpoint | Body fields | Returns |
+|---|---|---|
+| `GET /health` | — | `{ status, opendrift_available, note }` |
+| `POST /forecast` | `spill_lat`, `spill_lon`, `detection_time` (ISO, optional → now), `duration_hours`, `radius_m`, `oil_type` | `{ success, mode, generated_at, geojson, ais_areas: null }` |
+| `POST /hindcast` | `observed_lat`, `observed_lon`, `observation_time` (ISO, optional → now), `backward_duration_hours`, `radius_m`, `oil_type` | `{ success, mode, generated_at, geojson, ais_areas: [...] }` |
+
+`geojson` is a `FeatureCollection` of per-timestep spill/origin polygons (fed straight into MapLibre/Leaflet). `ais_areas` is the `[{ time, predicted_lat, predicted_lon, uncertainty_radius_km }]` search-target list.
+
+### Run it
+
+```bash
+# In the opendrift conda env (has OpenDrift + xarray + scipy):
+mamba activate opendrift
+pip install -r requirements.txt          # adds fastapi + uvicorn
+uvicorn src.server:app --reload --port 8000
+# Interactive docs:  http://localhost:8000/docs
+```
+
+```bash
+# Quick check
+curl -s localhost:8000/health
+curl -s localhost:8000/forecast \
+  -H 'Content-Type: application/json' \
+  -d '{"spill_lat": 18.5, "spill_lon": 71.5, "detection_time": "2026-09-04T12:00:00Z", "duration_hours": 24, "radius_m": 1200}' \
+  -o forecast.json
+```
+
+**Behaviour notes**
+* The server boots with only `fastapi`/`uvicorn` installed. Model modules load **lazily per request**; if OpenDrift is missing the model endpoints return a clean `503` (see `GET /health` → `opendrift_available`).
+* Runs are synchronous: a request blocks until the Open-Meteo fetch + OpenOil simulation finish (typically 1–5+ min). Output files are written under `output/` relative to the launch directory.
+* For hindcasts, pass an `observation_time` far enough in the past that Open-Meteo has marine/current data for the window.
+
+---
+
 ## 🔮 Future Enhancements (Production Readiness)
-* **API Wrapper:** Exposing the `run_forward_prediction` and `run_backward_hindcasting` functions via FastAPI/Flask.
+* ~~**API Wrapper:**~~ ✅ Done — see `src/server.py` above.
 * **INCOIS Integration:** Swapping the Open-Meteo API wrapper for direct local ingestion of daily INCOIS/Copernicus NetCDF files for zero-latency, enterprise-grade data.
 * **3D Weathering:** Enabling full 3D vertical mixing and chemical weathering properties for specific oil profiles.
